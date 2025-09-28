@@ -1,0 +1,36 @@
+name: CI
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      image_name:
+        description: "Name of the image to build"
+        required: true
+        default: alpine-docker
+        type: string
+
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ github.event.inputs.image_name }}
+    steps:
+      - name: Set default image name
+        if: env.IMAGE_NAME == null
+        run: echo "IMAGE_NAME=docker-docker" >> $GITHUB_ENV
+      - name: Install qemu-utils
+        run: |
+          sudo apt-get update
+          sudo apt-get install qemu-utils genisoimage
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: ./build.sh
+      - name: Upload QCOW2 root fs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpine-docker.qcow2
+          path: "${{ github.workspace }}/build/alpine-docker.qcow2"
